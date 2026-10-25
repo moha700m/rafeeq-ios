@@ -1,0 +1,214 @@
+{
+ "version": 2,
+ "freezePrice": 100,
+ "habits": [
+  {
+   "id": "water",
+   "ar": "موية",
+   "en": "Water",
+   "symbol": "drop.fill",
+   "energy": 10
+  },
+  {
+   "id": "sleep",
+   "ar": "نوم بدري",
+   "en": "Sleep early",
+   "symbol": "moon.fill",
+   "energy": 15
+  },
+  {
+   "id": "walk",
+   "ar": "مشي",
+   "en": "Walk",
+   "symbol": "figure.walk",
+   "energy": 15
+  },
+  {
+   "id": "read",
+   "ar": "قراية",
+   "en": "Reading",
+   "symbol": "book.fill",
+   "energy": 10
+  },
+  {
+   "id": "study",
+   "ar": "مذاكرة",
+   "en": "Study",
+   "symbol": "graduationcap.fill",
+   "energy": 15
+  },
+  {
+   "id": "gym",
+   "ar": "رياضة",
+   "en": "Exercise",
+   "symbol": "dumbbell.fill",
+   "energy": 20
+  }
+ ],
+ "places": [
+  {
+   "id": "alula",
+   "ar": "العُلا",
+   "en": "AlUla",
+   "image": "adv_alula",
+   "hours": 2,
+   "cost": 30,
+   "reward": 60,
+   "descAr": "صخور ذهبية وقصص قديمة",
+   "descEn": "Golden rocks and old stories"
+  },
+  {
+   "id": "taif",
+   "ar": "الطايف",
+   "en": "Taif",
+   "image": "adv_taif",
+   "hours": 3,
+   "cost": 40,
+   "reward": 80,
+   "descAr": "ورد وجبال وهوا بارد",
+   "descEn": "Roses, mountains, cool air"
+  },
+  {
+   "id": "rub",
+   "ar": "الربع الخالي",
+   "en": "Empty Quarter",
+   "image": "adv_empty_quarter",
+   "hours": 6,
+   "cost": 70,
+   "reward": 160,
+   "descAr": "كثبان ونجوم وجوائز نادرة",
+   "descEn": "Dunes, stars and rare loot"
+  }
+ ],
+ "items": [
+  {
+   "id": "scarf",
+   "ar": "شال ملوّن",
+   "en": "Colorful scarf",
+   "symbol": "scribble.variable",
+   "price": 120,
+   "kind": "wear",
+   "minLevel": 0
+  },
+  {
+   "id": "crown",
+   "ar": "تاج صغير",
+   "en": "Little crown",
+   "symbol": "crown.fill",
+   "price": 400,
+   "kind": "wear",
+   "minLevel": 5
+  },
+  {
+   "id": "glasses",
+   "ar": "نظارة شمس",
+   "en": "Sunglasses",
+   "symbol": "eyeglasses",
+   "price": 200,
+   "kind": "wear",
+   "minLevel": 0
+  },
+  {
+   "id": "lantern",
+   "ar": "فنر",
+   "en": "Lantern",
+   "symbol": "lamp.table.fill",
+   "price": 150,
+   "kind": "room",
+   "minLevel": 0
+  },
+  {
+   "id": "tent",
+   "ar": "خيمة شتوية",
+   "en": "Winter tent",
+   "symbol": "tent.fill",
+   "price": 350,
+   "kind": "room",
+   "minLevel": 0
+  },
+  {
+   "id": "palm",
+   "ar": "نخلة",
+   "en": "Palm tree",
+   "symbol": "tree.fill",
+   "price": 180,
+   "kind": "room",
+   "minLevel": 0
+  },
+  {
+   "id": "freeze",
+   "ar": "تجميد السلسلة",
+   "en": "Streak freeze",
+   "symbol": "snowflake",
+   "price": 100,
+   "kind": "freeze",
+   "minLevel": 0
+  }
+ ],
+ "events": [
+  {
+   "id": "alula-season",
+   "ar": "موسم العُلا",
+   "en": "AlUla Season",
+   "image": "adv_alula",
+   "start": "2026-10-22T00:00:00Z",
+   "end": "2026-11-04T00:00:00Z",
+   "goal": 1000000,
+   "progress": 742000,
+   "descAr": "كل الرفقاء يجمعون طاقة سوا، والجائزة سرج نادر",
+   "descEn": "Everyone pools energy for a rare saddle"
+  },
+  {
+   "id": "stars-night",
+   "ar": "ليلة النجوم",
+   "en": "Night of Stars",
+   "image": "adv_empty_quarter",
+   "start": "2026-11-06T00:00:00Z",
+   "end": "2026-11-10T00:00:00Z",
+   "goal": 500000,
+   "progress": 0,
+   "descAr": "حدث جاي بالربع الخالي",
+   "descEn": "Upcoming event in the Empty Quarter"
+  }
+ ],
+ "prompts": [
+  {
+   "ar": "وش أكثر شي ضحكك اليوم؟",
+   "en": "What made you laugh today?"
+  },
+  {
+   "ar": "وش الشي اللي تفتخر فيه اليوم؟",
+   "en": "What are you proud of today?"
+  },
+  {
+   "ar": "لو تقدر تسافر بكرة، وين تروح؟",
+   "en": "If you could travel tomorrow, where to?"
+  },
+  {
+   "ar": "مين أكثر واحد فرّحك اليوم؟",
+   "en": "Who made your day better?"
+  },
+  {
+   "ar": "وش شي صغير تبي تسويه بكرة؟",
+   "en": "One small thing for tomorrow?"
+  }
+ ],
+ "petLines": [
+  {
+   "ar": "يا هلا! شربت مويتك اليوم؟",
+   "en": "Hey! Had your water today?"
+  },
+  {
+   "ar": "كفو عليك، كمّل كذا",
+   "en": "Nice one, keep going"
+  },
+  {
+   "ar": "تعبت اليوم؟ خلنا ننام بدري",
+   "en": "Tired? Let's sleep early tonight"
+  },
+  {
+   "ar": "يلا نمشي شوي ونطلع مغامرة",
+   "en": "Let's walk a bit and go on an adventure"
+  }
+ ]
+}

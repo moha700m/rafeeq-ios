@@ -1,0 +1,43 @@
+name: Screenshots
+on: workflow_dispatch
+jobs:
+  shots:
+    runs-on: macos-26
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: maxim-lobanov/setup-xcode@v1
+        with: { xcode-version: latest-stable }
+      - run: brew install xcodegen && xcodegen generate
+      - name: Capture on every iPhone size
+        run: |
+          set +e
+          RT=$(xcrun simctl list runtimes | grep -oE "com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]+" | tail -1); echo "runtime $RT"
+          xcrun simctl list devicetypes | grep iPhone
+          FIRST=$(xcrun simctl list devices available | grep -E "iPhone 17 Pro \(" | head -1 | grep -oE "[A-F0-9-]{36}")
+          xcodebuild build -project Rafeeq.xcodeproj -scheme Rafeeq -configuration Debug -destination "id=$FIRST" -derivedDataPath build CODE_SIGNING_ALLOWED=NO -quiet || exit 1
+          APP=$(find build/Build/Products -name Rafeeq.app -path "*iphonesimulator*" | head -1)
+          mkdir -p shots
+          for NAME in "iPhone SE (3rd generation)" "iPhone 16e" "iPhone 17" "iPhone 17 Pro Max"; do
+            UDID=$(xcrun simctl list devices available | grep -F "$NAME (" | head -1 | grep -oE "[A-F0-9-]{36}")
+            if [ -z "$UDID" ]; then
+              DT=$(xcrun simctl list devicetypes | grep -F "$NAME (" | grep -oE "com.apple.CoreSimulator.SimDeviceType[^)]*" | head -1)
+              [ -n "$DT" ] && UDID=$(xcrun simctl create "$NAME" "$DT" "$RT")
+            fi
+            [ -z "$UDID" ] && { echo "skip $NAME"; continue; }
+            S=$(echo "$NAME" | tr -cd 'A-Za-z0-9')
+            xcrun simctl boot $UDID; xcrun simctl bootstatus $UDID -b >/dev/null
+            xcrun simctl status_bar $UDID override --time 9:41 --batteryState charged --batteryLevel 100
+            xcrun simctl install $UDID "$APP"
+            shot(){ n=$1; shift; xcrun simctl terminate $UDID com.moha700m.rafeeq; xcrun simctl launch $UDID com.moha700m.rafeeq -demo "$@"; sleep 5; xcrun simctl io $UDID screenshot "shots/$S-$n.png"; }
+            shot 1-home -tab 0 -lang ar
+            shot 2-friends -tab 1 -lang ar
+            shot 3-day -tab 2 -lang ar
+            shot 4-trips -tab 3 -lang ar
+            shot 5-shop -tab 4 -lang ar
+            shot 6-home-en -tab 0 -lang en
+            xcrun simctl shutdown $UDID
+          done
+          ls shots; [ "$(ls shots | wc -l)" -gt 0 ]
+      - uses: actions/upload-artifact@v4
+        with: { name: screenshots, path: shots/ }
