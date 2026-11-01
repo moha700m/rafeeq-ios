@@ -3,7 +3,23 @@ import Foundation
 /// Registers the Foundation-only tools (no UIKit / EventKit / network).
 public enum CoreTools {
     public static func register(into r: ToolRegistry, knowledge: KnowledgeBase = .shared, notes: NotesStore = .shared,
-                                now: @escaping () -> Date = Date.init) {
+                                memory: MemoryStore = .shared, now: @escaping () -> Date = Date.init) {
+        r.register(ClosureTool(ToolSpec(
+            name: "memory_save", title: "حفظ في الذاكرة", icon: "brain.head.profile",
+            description: "Remember a lasting fact about the user (name, preferences, city, job…) for future chats.",
+            parameters: [ToolParameter("fact", "string", "one short fact, e.g. 'يسكن في جدة'")])) { a in
+            guard let f = a.string("fact"), !f.isEmpty else { throw ToolError("fact مطلوب") }
+            return memory.add(f) ? "تم الحفظ في الذاكرة: \(f)" : "المعلومة محفوظة مسبقاً."
+        })
+
+        r.register(ClosureTool(ToolSpec(
+            name: "memory_search", title: "البحث في الذاكرة", icon: "brain",
+            description: "Search what you remember about the user.",
+            parameters: [ToolParameter("query", "string", "what to look for", required: false)])) { a in
+            let res = memory.search(a.string("query") ?? "")
+            return res.isEmpty ? "لا توجد ذكريات محفوظة." : res.map { "- \($0.text)" }.joined(separator: "\n")
+        })
+
         r.register(ClosureTool(ToolSpec(
             name: "calculator", title: "الحاسبة", icon: "plus.forwardslash.minus",
             description: "Evaluate an exact arithmetic expression. Supports + - * / ^ % ( ) sqrt().",

@@ -30,6 +30,15 @@ enum DemoContent {
         agentChat.updatedAt = now.addingTimeInterval(-3600)
 
         state.conversations = [chat, agentChat]
+        if state.providers.isEmpty {
+            state.providers = [ProviderConfig(id: "demo-claude", kind: .anthropic),
+                               ProviderConfig(id: "demo-openrouter", kind: .openRouter, model: "openai/gpt-5-mini")]
+        }
+        if state.memory.all.isEmpty {
+            state.memory.add("اسمه محمد ويسكن في الرياض")
+            state.memory.add("يفضّل الإجابات المختصرة بالأرقام")
+            state.memory.add("مطوّر iOS ويحب Swift")
+        }
         if state.knowledge.documents.isEmpty {
             state.knowledge.add(title: "عقد إيجار الشقة", text: "مدة العقد سنة ميلادية تبدأ من 1 يناير 2027. قيمة الإيجار السنوي 36,000 ريال تدفع على دفعتين. التأمين 2,000 ريال يسترد عند نهاية العقد.")
         }

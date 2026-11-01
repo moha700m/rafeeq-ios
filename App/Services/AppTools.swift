@@ -55,6 +55,33 @@ enum AppTools {
         })
 
         r.register(ClosureTool(ToolSpec(
+            name: "fetch_url", title: "قراءة صفحة ويب", icon: "doc.richtext",
+            description: "Download a web page and return its readable text (title + content). Use after web_search to read sources.",
+            parameters: [ToolParameter("url", "string", "full https URL")],
+            usesNetwork: true)) { a in
+            guard let s = a.string("url"), let url = URL(string: s), url.scheme?.hasPrefix("http") == true else {
+                throw ToolError("رابط غير صالح")
+            }
+            var req = URLRequest(url: url)
+            req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148", forHTTPHeaderField: "User-Agent")
+            req.timeoutInterval = 20
+            let (data, resp) = try await URLSession.shared.data(for: req)
+            let type = (resp as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Type") ?? ""
+            let raw = String(decoding: data, as: UTF8.self)
+            if type.contains("json") || type.contains("text/plain") { return String(raw.prefix(10000)) }
+            let page = HTMLText.extract(raw, limit: 10000)
+            return "العنوان: \(page.title)\nالرابط: \(s)\n\n\(page.text)"
+        })
+
+        r.register(ClosureTool(ToolSpec(
+            name: "run_javascript", title: "مفسّر الكود", icon: "curlybraces",
+            description: "Execute JavaScript (ES2023, no DOM/network) in a sandbox and return console.log output. Use for precise math, data analysis, sorting, dates, string processing.",
+            parameters: [ToolParameter("code", "string", "JavaScript source; print results with console.log")])) { a in
+            guard let code = a.string("code"), !code.isEmpty else { throw ToolError("code مطلوب") }
+            return try await JSRunner.run(code)
+        })
+
+        r.register(ClosureTool(ToolSpec(
             name: "web_search", title: "بحث الويب", icon: "globe",
             description: "Search the web (DuckDuckGo) and return top results with snippets. Only when local knowledge is insufficient.",
             parameters: [ToolParameter("query", "string", "search query")],

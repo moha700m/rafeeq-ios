@@ -74,7 +74,7 @@ jobs:
           shot() { local name=$1; shift
             xcrun simctl terminate "$UDID" com.moha700m.sanadai || true
             xcrun simctl launch "$UDID" com.moha700m.sanadai "$@"
-            sleep 6
+            sleep 8
             xcrun simctl io "$UDID" screenshot "shots/$name.png"
           }
           shot 0-onboarding -resetOnboarding YES
@@ -86,6 +86,10 @@ jobs:
           shot 6-more -seenOnboard YES -tab more
           shot 7-saudi-tools -seenOnboard YES -tab more -screen saudi
           shot 8-server -seenOnboard YES -tab more -screen server
+          shot 10-providers -seenOnboard YES -demo YES -tab more -screen providers
+          shot 11-mcp -seenOnboard YES -demo YES -tab more -screen mcp
+          shot 12-memory -seenOnboard YES -demo YES -tab more -screen memory
+          shot 13-new-chat -seenOnboard YES -tab chat -screen newChat
           xcrun simctl ui "$UDID" appearance dark
           shot 9-chat-dark -seenOnboard YES -demo YES -tab chat
           xcrun simctl ui "$UDID" appearance light

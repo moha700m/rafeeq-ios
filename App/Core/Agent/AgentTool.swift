@@ -123,6 +123,19 @@ public final class ToolRegistry {
     public var specs: [ToolSpec] { order.compactMap { tools[$0]?.spec } }
 
     public func specs(for names: [String], allowNetwork: Bool) -> [ToolSpec] {
-        names.compactMap { tools[$0]?.spec }.filter { allowNetwork || !$0.usesNetwork }
+        var resolved: [String] = []
+        for n in names {
+            if n == "*" { resolved += order }
+            else if n.hasSuffix("*") { resolved += order.filter { $0.hasPrefix(String(n.dropLast())) } }
+            else { resolved.append(n) }
+        }
+        var seen = Set<String>()
+        return resolved.filter { seen.insert($0).inserted }
+            .compactMap { tools[$0]?.spec }.filter { allowNetwork || !$0.usesNetwork }
+    }
+
+    public func unregister(prefix: String) {
+        for n in order where n.hasPrefix(prefix) { tools[n] = nil }
+        order.removeAll { $0.hasPrefix(prefix) }
     }
 }

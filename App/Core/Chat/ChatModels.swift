@@ -14,9 +14,16 @@ public struct ChatMessage: Codable, Identifiable, Equatable, Sendable {
     /// Generation stats (tokens/sec) for assistant messages.
     public var tokensPerSecond: Double?
     public var tokenCount: Int?
+    /// JPEG images attached to a user message (sent to vision-capable cloud models).
+    public var images: [Data]?
+    /// Which model produced an assistant message (e.g. "Qwen3 1.7B" or "Claude · claude-sonnet-5-5").
+    public var modelName: String?
 
     public init(id: UUID = UUID(), role: ChatRole, content: String, date: Date = Date(),
-                agentSteps: [AgentStep]? = nil, tokensPerSecond: Double? = nil, tokenCount: Int? = nil) {
+                agentSteps: [AgentStep]? = nil, tokensPerSecond: Double? = nil, tokenCount: Int? = nil,
+                images: [Data]? = nil, modelName: String? = nil) {
+        self.images = images
+        self.modelName = modelName
         self.id = id
         self.role = role
         self.content = content

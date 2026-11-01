@@ -141,7 +141,7 @@ struct LensView: View {
         Task {
             var acc = ""
             do {
-                let (out, _) = try await state.engine.generate(messages: msgs, settings: s, stop: []) { piece in
+                let (out, _) = try await state.backend(for: nil).generate(messages: msgs, settings: s, stop: []) { piece in
                     acc += piece
                     let shown = ThinkingFilter.strip(acc)
                     Task { @MainActor in result = shown }

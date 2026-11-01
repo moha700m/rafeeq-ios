@@ -30,7 +30,8 @@ public struct AgentProfile: Codable, Identifiable, Equatable, Hashable, Sendable
         self.instructions = instructions; self.toolNames = toolNames; self.maxSteps = maxSteps; self.builtIn = builtIn
     }
 
-    public static let allCoreTools = [
+    public static let allCoreTools: [String] = ["*"]
+    public static let legacyCoreTools = [
         "calculator", "current_datetime", "hijri_date", "prayer_times", "qibla", "zakat", "vat",
         "end_of_service", "knowledge_search", "read_document", "notes_add", "notes_search",
         "create_reminder", "create_event", "image_text", "web_search",
@@ -38,9 +39,21 @@ public struct AgentProfile: Codable, Identifiable, Equatable, Hashable, Sendable
 
     public static let builtIns: [AgentProfile] = [
         AgentProfile(id: "sanad", name: "وكيل سَنَد الشامل", icon: "wand.and.stars",
-                     summary: "يخطط وينفّذ بكل الأدوات المتاحة",
-                     instructions: "أنت وكيل عام ذكي. قسّم المهمة لخطوات واستخدم الأدوات عند الحاجة للحصول على معلومات دقيقة بدلاً من التخمين.",
-                     toolNames: allCoreTools, maxSteps: 8, builtIn: true),
+                     summary: "يخطط وينفّذ بكل الأدوات المتاحة، بما فيها أدوات MCP",
+                     instructions: "أنت وكيل عام ذكي. قسّم المهمة لخطوات واستخدم الأدوات عند الحاجة للحصول على معلومات دقيقة بدلاً من التخمين. احفظ في الذاكرة أي معلومة دائمة يذكرها المستخدم عن نفسه.",
+                     toolNames: ["*"], maxSteps: 10, builtIn: true),
+        AgentProfile(id: "deep_research", name: "البحث العميق", icon: "sparkle.magnifyingglass",
+                     summary: "يبحث في الويب ويقرأ المصادر ويكتب تقريراً موثّقاً",
+                     instructions: """
+                     أنت باحث محترف. للإجابة: (1) ابحث بـ web_search بعبارتين أو ثلاث مختلفة، (2) اقرأ أهم 3-5 مصادر كاملة بـ fetch_url، \
+                     (3) قارن المعلومات وتحقق من التواريخ، (4) اكتب تقريراً منظماً بعناوين ونقاط، وضع المصادر كروابط مرقمة [1] [2] في النهاية. \
+                     لا تكتب التقرير قبل قراءة المصادر.
+                     """,
+                     toolNames: ["web_search", "fetch_url", "calculator", "current_datetime", "notes_add", "run_javascript"], maxSteps: 14, builtIn: true),
+        AgentProfile(id: "analyst", name: "محلل البيانات", icon: "chart.xyaxis.line",
+                     summary: "يكتب وينفّذ JavaScript لتحليل الأرقام والجداول بدقة",
+                     instructions: "أنت محلل بيانات. لأي حساب أو تحليل اكتب كود JavaScript ونفّذه بأداة run_javascript واطبع النتائج بـ console.log، ثم فسّر النتائج بالعربية في جدول Markdown.",
+                     toolNames: ["run_javascript", "calculator", "knowledge_search", "notes_add"], maxSteps: 8, builtIn: true),
         AgentProfile(id: "researcher", name: "باحث المستندات", icon: "doc.text.magnifyingglass",
                      summary: "يبحث في قاعدة معرفتك ويجيب مع المصادر",
                      instructions: "ابحث دائماً في قاعدة المعرفة أولاً، وأجب فقط بما تجده مع ذكر اسم المستند بين قوسين [ ]. إذا لم تجد الإجابة فقل ذلك.",
@@ -74,6 +87,8 @@ public final class AgentLoop {
     /// Asked before running a tool that requires confirmation. Return `true` to allow.
     public var confirm: (ToolSpec, ToolArguments) async -> Bool
     public var now: () -> Date
+    /// Extra context appended to the system prompt (memory, custom instructions).
+    public var extraContext: String = ""
 
     public init(backend: LLMBackend, registry: ToolRegistry, allowNetwork: Bool = false,
                 confirm: @escaping (ToolSpec, ToolArguments) async -> Bool = { _, _ in false },
@@ -91,7 +106,7 @@ public final class AgentLoop {
         return """
         \(profile.instructions)
 
-        التاريخ الحالي: \(Hijri.describe(now())).
+        التاريخ الحالي: \(Hijri.describe(now())).\(extraContext)
 
         # الأدوات
         لديك الأدوات التالية:

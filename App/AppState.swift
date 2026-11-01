@@ -9,7 +9,11 @@ enum AppTab: String, CaseIterable {
 final class AppSettings: ObservableObject {
     @AppStorage("generation") private var generationData: Data = Data()
     @AppStorage("personaID") var personaID: String = Persona.general.id
-    @AppStorage("webAccess") var webAccess: Bool = false
+    @AppStorage("webAccess2") var webAccess: Bool = true
+    @AppStorage("memoryEnabled") var memoryEnabled: Bool = true
+    @AppStorage("customInstructions") var customInstructions: String = ""
+    /// "local" or a cloud provider id.
+    @AppStorage("defaultModelRef") var defaultModelRef: String = "local"
     @AppStorage("speakReplies") var speakReplies: Bool = false
     @AppStorage("oledDark") var oledDark: Bool = false
     @AppStorage("appearance") var appearance: Int = 0 // 0 system, 1 light, 2 dark
@@ -42,6 +46,9 @@ final class AppState: ObservableObject {
     @Published var agents: [AgentProfile] = []
     @Published var pendingConfirmation: PendingConfirmation?
     @Published var lensHandoff: String?
+    /// Query handed in from Siri/Shortcuts; opened as a new chat.
+    @Published var pendingQuery: String?
+    var pendingAutoSend: String?
 
     let settings = AppSettings()
     let engine: LlamaEngine
@@ -49,7 +56,10 @@ final class AppState: ObservableObject {
     let registry = ToolRegistry()
     let knowledge = KnowledgeBase.shared
     let notes = NotesStore.shared
+    let memory = MemoryStore.shared
     let server: LocalAPIServer
+    let mcp: MCPManager
+    @Published var providers: [ProviderConfig] = []
 
     /// Latest image text from the Lens, available to the `image_text` tool.
     var lastImageText: String?
@@ -65,6 +75,7 @@ final class AppState: ObservableObject {
         let engine = LlamaEngine()
         self.engine = engine
         self.models = ModelManager(engine: engine)
+        self.mcp = MCPManager(registry: registry)
         self.server = LocalAPIServer(
             backend: { engine },
             modelName: { UserDefaults.standard.string(forKey: "activeModelID") ?? "none" },
@@ -72,13 +83,60 @@ final class AppState: ObservableObject {
         conversations = Storage.load([Conversation].self, from: "conversations.json") ?? []
         let custom = Storage.load([AgentProfile].self, from: "agents.json") ?? []
         agents = AgentProfile.builtIns + custom
-        CoreTools.register(into: registry, knowledge: knowledge, notes: notes)
+        providers = Storage.load([ProviderConfig].self, from: "providers.json") ?? []
+        CoreTools.register(into: registry, knowledge: knowledge, notes: notes, memory: memory)
         AppTools.register(into: registry, state: self)
         AppStateHolder.shared = self
         applyLaunchArguments()
     }
 
-    var engineReady: Bool { engine.isReady }
+    var engineReady: Bool { isReady(settings.defaultModelRef) }
+
+    // MARK: Model routing (local ↔ cloud)
+
+    func provider(for ref: String?) -> ProviderConfig? {
+        let r = ref ?? settings.defaultModelRef
+        return providers.first { $0.id == r }
+    }
+
+    func isReady(_ ref: String?) -> Bool {
+        if let p = provider(for: ref) { return p.kind == .custom || Keychain.get(p.keychainKey)?.isEmpty == false }
+        return engine.isReady
+    }
+
+    func backend(for ref: String?) -> LLMBackend {
+        if let p = provider(for: ref) { return CloudBackend(config: p, apiKey: Keychain.get(p.keychainKey) ?? "") }
+        return engine
+    }
+
+    func modelName(for ref: String?) -> String {
+        if let p = provider(for: ref) { return p.displayName }
+        return models.activeModel?.name ?? "نموذج محلي"
+    }
+
+    func isCloud(_ ref: String?) -> Bool { provider(for: ref) != nil }
+
+    func saveProvider(_ p: ProviderConfig, key: String?) {
+        if let i = providers.firstIndex(where: { $0.id == p.id }) { providers[i] = p } else { providers.append(p) }
+        if let key { key.isEmpty ? Keychain.delete(p.keychainKey) : Keychain.set(key, for: p.keychainKey) }
+        Storage.save(providers, to: "providers.json")
+    }
+
+    func deleteProvider(_ p: ProviderConfig) {
+        providers.removeAll { $0.id == p.id }
+        Keychain.delete(p.keychainKey)
+        if settings.defaultModelRef == p.id { settings.defaultModelRef = "local" }
+        Storage.save(providers, to: "providers.json")
+    }
+
+    /// System-prompt suffix with the user's custom instructions and long-term memory.
+    var personalContext: String {
+        var s = ""
+        let ci = settings.customInstructions.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !ci.isEmpty { s += "\n\n# تعليمات المستخدم المخصصة\n" + ci }
+        if settings.memoryEnabled { s += memory.promptBlock() }
+        return s
+    }
 
     // MARK: Persistence
 
@@ -110,8 +168,14 @@ final class AppState: ObservableObject {
 
     // MARK: Agent
 
-    func makeAgentLoop() -> AgentLoop {
-        AgentLoop(backend: engine, registry: registry, allowNetwork: settings.webAccess,
+    func makeAgentLoop(ref: String? = nil) -> AgentLoop {
+        let loop = makeAgentLoopBase(backend(for: ref))
+        loop.extraContext = personalContext
+        return loop
+    }
+
+    private func makeAgentLoopBase(_ b: LLMBackend) -> AgentLoop {
+        AgentLoop(backend: b, registry: registry, allowNetwork: settings.webAccess,
                   confirm: { [weak self] spec, args in
                       guard let self else { return false }
                       return await withCheckedContinuation { cont in
@@ -135,6 +199,10 @@ final class AppState: ObservableObject {
         conversations = []
         knowledge.removeAll()
         notes.removeAll()
+        memory.removeAll()
+        providers.forEach { Keychain.delete($0.keychainKey) }
+        providers = []
+        mcp.servers.forEach { Keychain.delete($0.keychainKey) }
         agents = AgentProfile.builtIns
         Keychain.delete("apiKey")
         try? FileManager.default.removeItem(at: Storage.root)

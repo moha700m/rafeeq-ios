@@ -13,6 +13,11 @@ struct MoreView: View {
                     NavigationLink(value: "knowledge") { row("قاعدة المعرفة", "books.vertical.fill", .orange, "\(state.knowledge.documents.count) مستند") }
                     NavigationLink(value: "notes") { row("الملاحظات", "note.text", .yellow, "\(state.notes.notes.count) ملاحظة") }
                 }
+                Section("القوة") {
+                    NavigationLink(value: "providers") { row("مزودو السحابة", "cloud.bolt.fill", .indigo, "\(state.providers.count) مزود · GPT · Claude · Gemini") }
+                    NavigationLink(value: "mcp") { row("خوادم MCP", "puzzlepiece.extension.fill", .purple, "\(state.mcp.servers.filter(\.enabled).count) مفعّل · \(state.mcp.totalTools) أداة") }
+                    NavigationLink(value: "memory") { row("الذاكرة والتخصيص", "brain.head.profile", .pink, "\(state.memory.all.count) ذكرى") }
+                }
                 Section {
                     NavigationLink(value: "server") { row("خادم API المحلي", "server.rack", .blue, state.server.isRunning ? "يعمل" : "متوقف") }
                     NavigationLink(value: "settings") { row("الإعدادات", "gearshape.fill", .gray, "النموذج، المظهر، الخصوصية") }
@@ -20,7 +25,7 @@ struct MoreView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("سَنَد AI").font(.headline)
-                        Text("ذكاء اصطناعي محلي بهوية سعودية. لا حساب، لا تحليلات، ولا يخرج شيء من جهازك إلا إذا فعّلت الويب بنفسك.")
+                        Text("ذكاء اصطناعي محلي وسحابي بهوية سعودية. النماذج المحلية تعمل بدون إنترنت، والسحابية والويب وMCP تستخدم الإنترنت لقوة أكبر. لا حساب ولا تحليلات.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
@@ -32,15 +37,21 @@ struct MoreView: View {
                 case "knowledge": KnowledgeView()
                 case "notes": NotesView()
                 case "server": ServerView()
+                case "providers": ProvidersView()
+                case "mcp": MCPServersView(mcp: state.mcp)
+                case "memory": MemoryView()
                 default: SettingsView()
                 }
             }
-            .onAppear {
-                if let s = state.deepLinkScreen, ["saudi", "server", "knowledge", "settings"].contains(s) {
-                    state.deepLinkScreen = nil
-                    path.append(s)
-                }
-            }
+            .onAppear(perform: openDeepLink)
+            .onChange(of: state.deepLinkScreen) { _, _ in openDeepLink() }
+        }
+    }
+
+    func openDeepLink() {
+        if let s = state.deepLinkScreen, ["saudi", "server", "knowledge", "settings", "providers", "mcp", "memory"].contains(s) {
+            state.deepLinkScreen = nil
+            path.append(s)
         }
     }
 

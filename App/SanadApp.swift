@@ -52,7 +52,15 @@ struct RootView: View {
         }
         .task {
             if !UserDefaults.standard.bool(forKey: "demo") {
-                await state.models.restoreActive(contextLength: settings.generation.contextLength)
+                Task { await state.mcp.connectAll() }
+                if !state.isCloud(nil) { await state.models.restoreActive(contextLength: settings.generation.contextLength) }
+            }
+        }
+        .onOpenURL { url in
+            // sanad://ask?q=...
+            if let q = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "q" })?.value {
+                state.tab = .chat
+                state.pendingQuery = q
             }
         }
     }

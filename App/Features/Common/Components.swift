@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 struct Card<Content: View>: View {
     @ViewBuilder var content: Content
@@ -124,12 +125,22 @@ struct CodeBlock: View {
     let code: String
     let language: String
     @State private var copied = false
+    @State private var preview = false
+
+    var previewable: Bool {
+        let l = language.lowercased()
+        return l == "html" || l == "svg" || l == "xml" && code.contains("<svg") || code.lowercased().hasPrefix("<!doctype html")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(language.isEmpty ? "code" : language).font(.caption2.monospaced()).foregroundStyle(.secondary)
                 Spacer()
+                if previewable {
+                    Button { preview = true } label: { Label("معاينة", systemImage: "play.rectangle").font(.caption2.bold()) }
+                        .padding(.trailing, 8)
+                }
                 Button {
                     UIPasteboard.general.string = code
                     copied = true
@@ -146,7 +157,59 @@ struct CodeBlock: View {
             .environment(\.layoutDirection, .leftToRight)
         }
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        .sheet(isPresented: $preview) { ArtifactView(html: code, isSVG: language.lowercased() == "svg") }
     }
+}
+
+/// Live preview of HTML/SVG the model wrote (like Claude Artifacts / ChatGPT Canvas).
+struct ArtifactView: View {
+    let html: String
+    var isSVG = false
+    @Environment(\.dismiss) var dismiss
+    @State private var showCode = false
+
+    var page: String {
+        if isSVG || !html.lowercased().contains("<html") {
+            return "<!doctype html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'></head><body style='margin:0;font-family:-apple-system'>\(html)</body></html>"
+        }
+        return html
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if showCode {
+                    ScrollView { Text(html).font(.system(.footnote, design: .monospaced)).textSelection(.enabled).padding() }
+                        .environment(\.layoutDirection, .leftToRight)
+                } else {
+                    WebView(html: page).ignoresSafeArea(edges: .bottom)
+                }
+            }
+            .navigationTitle("معاينة")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("إغلاق") { dismiss() } }
+                ToolbarItem(placement: .primaryAction) {
+                    HStack {
+                        Button { showCode.toggle() } label: { Image(systemName: showCode ? "eye" : "chevron.left.forwardslash.chevron.right") }
+                        ShareLink(item: html) { Image(systemName: "square.and.arrow.up") }
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct WebView: UIViewRepresentable {
+    let html: String
+    func makeUIView(context: Context) -> WKWebView {
+        let cfg = WKWebViewConfiguration()
+        cfg.defaultWebpagePreferences.allowsContentJavaScript = true
+        let w = WKWebView(frame: .zero, configuration: cfg)
+        w.isOpaque = false
+        return w
+    }
+    func updateUIView(_ w: WKWebView, context: Context) { w.loadHTMLString(html, baseURL: nil) }
 }
 
 extension Int64 {

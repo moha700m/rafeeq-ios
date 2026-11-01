@@ -25,7 +25,7 @@ struct AgentsView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(a.name).font(.headline)
                                     Text(a.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-                                    Text("\(a.toolNames.count) أداة · حتى \(a.maxSteps) خطوات").font(.caption2).foregroundStyle(.tertiary)
+                                    Text("\(a.toolNames.contains("*") ? "كل الأدوات" : "\(a.toolNames.count) أداة") · حتى \(a.maxSteps) خطوات").font(.caption2).foregroundStyle(.tertiary)
                                 }
                             }
                         }
@@ -94,7 +94,7 @@ struct AgentRunView: View {
                         Text(agent.summary).font(.footnote).foregroundStyle(.secondary)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack {
-                                ForEach(agent.toolNames, id: \.self) { n in
+                                ForEach(state.registry.specs(for: agent.toolNames, allowNetwork: true).map(\.name), id: \.self) { n in
                                     if let t = state.registry.tool(named: n)?.spec {
                                         Label(t.title, systemImage: t.icon).font(.caption2)
                                             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -154,8 +154,9 @@ struct AgentRunView: View {
         guard state.engineReady else { error = LLMError.noModelLoaded.localizedDescription; return }
         error = nil; steps = []; answer = ""; partial = ""; running = true
         let loop = state.makeAgentLoop()
+        if agent.id == "deep_research" { loop.allowNetwork = true }
         var profile = agent
-        profile.maxSteps = min(agent.maxSteps, max(2, state.settings.agentMaxSteps))
+        profile.maxSteps = max(agent.maxSteps, state.settings.agentMaxSteps)
         let g = goal
         task = Task {
             do {
