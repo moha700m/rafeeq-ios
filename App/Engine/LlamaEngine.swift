@@ -1,4 +1,6 @@
 import Foundation
+
+#if !targetEnvironment(simulator)
 import llama
 
 /// On-device inference with llama.cpp (GGUF, Metal on device / CPU in the simulator).
@@ -21,11 +23,7 @@ final class LlamaEngine: LLMBackend, @unchecked Sendable {
         _ = Self.backendInit
         unload()
         var mp = llama_model_default_params()
-        #if targetEnvironment(simulator)
-        mp.n_gpu_layers = 0
-        #else
         mp.n_gpu_layers = 999
-        #endif
         guard let m = llama_model_load_from_file(path, mp) else {
             throw LLMError.loadFailed("الملف تالف أو غير مدعوم")
         }
@@ -203,3 +201,22 @@ final class LlamaEngine: LLMBackend, @unchecked Sendable {
         return (text, GenerationStats(promptTokens: tokens.count, generatedTokens: generated, seconds: genSeconds))
     }
 }
+
+#else
+
+/// The llama.cpp XCFramework ships no iOS Simulator slice, so the simulator build uses this stub
+/// (UI, agents and tools still run; only model inference needs a real device).
+final class LlamaEngine: LLMBackend, @unchecked Sendable {
+    private(set) var modelPath: String?
+    private(set) var contextLength: Int = 4096
+    var isReady: Bool { false }
+    func load(path: String, contextLength: Int) throws {
+        throw LLMError.loadFailed("المحاكي لا يشغّل النماذج — جرّب على آيفون حقيقي")
+    }
+    func unload() {}
+    func generate(messages: [ChatMessage], settings: GenerationSettings, stop: [String],
+                  onToken: @escaping (String) -> Bool) async throws -> (text: String, stats: GenerationStats) {
+        throw LLMError.noModelLoaded
+    }
+}
+#endif

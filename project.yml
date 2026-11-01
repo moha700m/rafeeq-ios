@@ -20,9 +20,14 @@ targets:
     platform: iOS
     sources:
       - path: App
-    dependencies:
-      - framework: Frameworks/llama.xcframework
-        embed: true
+    postBuildScripts:
+      - name: Embed llama.framework (device only)
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "$PLATFORM_NAME" = "iphoneos" ]; then
+            mkdir -p "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH"
+            rsync -a --delete "$SRCROOT/Frameworks/device/llama.framework" "$TARGET_BUILD_DIR/$FRAMEWORKS_FOLDER_PATH/"
+          fi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.moha700m.sanadai
@@ -37,7 +42,10 @@ targets:
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/SanadAI.entitlements
-        OTHER_LDFLAGS: ["-lc++"]
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+        LD_RUNPATH_SEARCH_PATHS: ["$(inherited)", "@executable_path/Frameworks"]
+        "FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]": "$(SRCROOT)/Frameworks/device"
+        "OTHER_LDFLAGS[sdk=iphoneos*]": ["-framework", "llama", "-lc++"]
     info:
       path: App/Info.plist
       properties:

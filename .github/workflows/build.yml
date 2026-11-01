@@ -25,7 +25,7 @@ jobs:
       - name: Cache llama.xcframework
         uses: actions/cache@v4
         with:
-          path: Frameworks/llama.xcframework
+          path: Frameworks/device
           key: llama-xcframework-${{ env.LLAMA_TAG }}
       - name: Fetch llama.cpp XCFramework
         run: ./scripts/fetch-llama.sh
