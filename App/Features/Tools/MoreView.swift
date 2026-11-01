@@ -92,7 +92,7 @@ struct SaudiToolsView: View {
                     HStack {
                         Text(p.name)
                         Spacer()
-                        Text(p.time, style: .time).monospacedDigit()
+                        Text(Self.riyadhTime(p.time)).monospacedDigit()
                             .foregroundStyle(t.next(after: Date())?.name == p.name ? Color.accentColor : .secondary)
                     }
                 }
@@ -151,6 +151,15 @@ struct SaudiToolsView: View {
         i.goldGrams24k = Decimal(arabic: gold) ?? 0
         i.goldPricePerGram = Decimal(arabic: settings.goldPrice) ?? 0
         return Zakat.compute(i)
+    }
+
+    /// Prayer times are calculated for Saudi Arabia, so always display them in Riyadh time.
+    static func riyadhTime(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ar_SA")
+        f.timeZone = Hijri.riyadh
+        f.dateFormat = "h:mm a"
+        return f.string(from: d)
     }
 
     func convertDate() {
